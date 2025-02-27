@@ -5,12 +5,12 @@ import {visit} from 'unist-util-visit';
 import {fromHtmlIsomorphic} from 'hast-util-from-html-isomorphic';
 
 interface RehypeGraphvizDiagramOption {
-  containerTagName: string;
-  containerTagProps: Properties;
-  postProcess: (svg: string) => string;
+  containerTagName?: string;
+  containerTagProps?: Properties;
+  postProcess?: (svg: string) => string;
 }
 
-const defaultOptions: RehypeGraphvizDiagramOption = {
+const defaultOptions: Required<RehypeGraphvizDiagramOption> = {
   containerTagName: 'figure',
   containerTagProps: {},
   postProcess: (svg: string) => svg,
@@ -19,9 +19,10 @@ const defaultOptions: RehypeGraphvizDiagramOption = {
 export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root> = (
   options = defaultOptions,
 ) => {
-  const mergedOptions: RehypeGraphvizDiagramOption = {
-    ...defaultOptions,
-    ...options,
+  const mergedOptions: Required<RehypeGraphvizDiagramOption> = {
+    containerTagName: options?.containerTagName ?? defaultOptions.containerTagName,
+    containerTagProps: options?.containerTagProps ?? defaultOptions.containerTagProps,
+    postProcess: options?.postProcess ?? defaultOptions.postProcess,
   };
 
   let graphviz: any; // Cache the graphviz instance in closure.
