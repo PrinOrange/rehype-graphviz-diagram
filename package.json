@@ -1,0 +1,52 @@
+{
+  "name": "rehype-graphviz-diagram",
+  "version": "0.0.8",
+  "description": "A Unified/Rehype Plugin that allows you transform graphviz codes into SVG diagram.",
+  "main": "./dist/index.js",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier . --write",
+    "test": "pnpm run build && tsx --test ./__tests__/*.test.ts",
+    "prepublish": "pnpm run format && pnpm run test && pnpm run build"
+  },
+  "keywords": [
+    "markdown",
+    "diagram",
+    "mdx",
+    "hast",
+    "graphviz",
+    "uml",
+    "plugin",
+    "rehype",
+    "text-to-diagram",
+    "rehype-plugin",
+    "unified"
+  ],
+  "bugs": {
+    "url": "https://github.com/PrinOrange/rehype-graphviz-diagram/issues"
+  },
+  "homepage": "https://github.com/PrinOrange/rehype-graphviz-diagram",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PrinOrange/rehype-graphviz-diagram"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@viz-js/viz": "^3.11.0",
+    "hast-util-from-html-isomorphic": "^2.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/hast": "^3.0.4",
+    "@types/node": "^22.13.5",
+    "prettier": "^3.5.2",
+    "rehype-stringify": "^10.0.1",
+    "remark-rehype": "^11.1.1",
+    "remark-parse": "^11.0.0",
+    "tsx": "^4.19.3"
+  }
+}
