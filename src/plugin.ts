@@ -6,13 +6,13 @@ import {fromHtmlIsomorphic} from 'hast-util-from-html-isomorphic';
 
 interface RehypeGraphvizDiagramOption {
   containerTagName: string;
-  containerTagProperties?: Properties;
-  containerTagClassName?: string;
+  containerTagProps: Properties;
   postProcess: (svg: string) => string;
 }
 
 export const defaultOptions: RehypeGraphvizDiagramOption = {
-  containerTagName: 'div',
+  containerTagName: 'figure',
+  containerTagProps: {},
   postProcess: (svg: string) => svg,
 };
 
@@ -67,6 +67,7 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
 
       // update the node to be a generated SVG
       pre.tagName = mergedOptions.containerTagName;
+      pre.properties = mergedOptions.containerTagProps;
       pre.children = svgHast.children as ElementContent[];
 
       // Skip the next index since we're replacing the original code block with the SVG
