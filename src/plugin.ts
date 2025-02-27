@@ -10,7 +10,7 @@ interface RehypeGraphvizDiagramOption {
   postProcess: (svg: string) => string;
 }
 
-export const defaultOptions: RehypeGraphvizDiagramOption = {
+const defaultOptions: RehypeGraphvizDiagramOption = {
   containerTagName: 'figure',
   containerTagProps: {},
   postProcess: (svg: string) => svg,
