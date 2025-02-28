@@ -16,14 +16,14 @@ const defaultOptions: Required<RehypeGraphvizDiagramOption> = {
   postProcess: (svg: string) => svg,
 };
 
-const errorBlock = (msg:string) => {
+const errorBlock = (msg: string) => {
   return `
 <div>
   <b>Rehype Graphviz Diagram Render Error:</b>
   <p>${msg}</p>
 </div>
-`
-}
+`;
+};
 
 export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root> = (
   options = defaultOptions,
@@ -56,7 +56,7 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
 
       const className = node.properties.className;
       if (!Array.isArray(className) || className.length === 0) return;
-      
+
       const lang = className[0].toString();
       const match = lang.match(languageGraphvizRegex);
       if (!match) return;
