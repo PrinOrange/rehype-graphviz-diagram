@@ -14,7 +14,7 @@ to test than others. I’m always open to suggestions on how a project could be 
 ## Code Quality Tools
 
 Most of my projects use linters and formatters to ensure a strict coding standard. Typically these
-tools are [ESLint](https://eslint.org), [Prettier](https://prettier.io),
+tools are [Prettier](https://prettier.io),
 [remark](https://remark.js.org), and [TypeScript](https://typescriptlang.org), but they may vary per
 project. GitHub actions are used to verify the code adheres to these tools.
 
