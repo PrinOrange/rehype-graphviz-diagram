@@ -1,0 +1,2 @@
+# Prettier has a bug, it might delete some code blocks in readme file.
+README.MD
