@@ -1,5 +1,5 @@
 import {instance} from '@viz-js/viz';
-import type {ElementContent, Properties, Root} from 'hast';
+import type {ElementContent, Properties, Root, Element} from 'hast';
 import type {Plugin} from 'unified';
 import {visit} from 'unist-util-visit';
 import {fromHtmlIsomorphic} from 'hast-util-from-html-isomorphic';
@@ -16,6 +16,15 @@ const defaultOptions: Required<RehypeGraphvizDiagramOption> = {
   postProcess: (svg: string) => svg,
 };
 
+const errorBlock = (msg:string) => {
+  return `
+<div>
+  <b>Rehype Graphviz Diagram Render Error:</b>
+  <p>${msg}</p>
+</div>
+`
+}
+
 export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root> = (
   options = defaultOptions,
 ) => {
@@ -25,16 +34,17 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
     postProcess: options?.postProcess ?? defaultOptions.postProcess,
   };
 
-  let graphviz: any; // Cache the graphviz instance in closure.
-  const languageGraphvizRegex = /^language-graphviz-(\S+)$/i; // Cache the regex
+  let graphviz: any;
+  const languageGraphvizRegex = /^language-graphviz-(\S+)$/i;
 
   return async (tree) => {
     if (!graphviz) {
-      graphviz = await instance(); // Only instantiate once
+      graphviz = await instance();
     }
 
+    const promises: Promise<any>[] = [];
+
     visit(tree, 'element', (node, index, pre) => {
-      // Ensure the current node is a 'pre' block containing a 'code' element
       if (
         node.tagName !== 'code' ||
         pre?.type !== 'element' ||
@@ -46,35 +56,41 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
 
       const className = node.properties.className;
       if (!Array.isArray(className) || className.length === 0) return;
+      
       const lang = className[0].toString();
       const match = lang.match(languageGraphvizRegex);
       if (!match) return;
       const engine = match[1] || 'dot';
 
-      // If there's no content in the code block, skip it
       if (node.children.length === 0 || node.children[0].type !== 'text') {
         return;
       }
 
       const graphvizCode = node.children[0].value;
 
-      // Generate SVG from Graphviz code
-      const svg = mergedOptions.postProcess(
-        graphviz.renderString(graphvizCode, {engine, format: 'svg'}),
-      );
-      const svgHast = fromHtmlIsomorphic(svg, {
-        fragment: true,
-      });
+      async function applySVG(parent: Element, index: number) {
+        try {
+          const svg = await graphviz.renderString(graphvizCode, {engine, format: 'svg'});
+          const processedSvg = mergedOptions.postProcess(svg);
+          const svgHast = fromHtmlIsomorphic(processedSvg, {
+            fragment: true,
+          });
 
-      // update the node to be a generated SVG
-      pre.tagName = mergedOptions.containerTagName;
-      pre.properties = mergedOptions.containerTagProps;
-      pre.children = svgHast.children as ElementContent[];
+          parent.tagName = mergedOptions.containerTagName;
+          parent.properties = mergedOptions.containerTagProps;
+          parent.children = svgHast.children as ElementContent[];
 
-      // Skip the next index since we're replacing the original code block with the SVG
-      index += 1;
+          return index + 1;
+        } catch (e: any) {
+          const errorBlockHast = fromHtmlIsomorphic(e);
+          parent.children = errorBlockHast.children as ElementContent[];
+          console.error('Error processing Graphviz code:', e.message);
+          return;
+        }
+      }
 
-      return index;
+      promises.push(applySVG(pre, index));
     });
+    await Promise.all(promises);
   };
 };
