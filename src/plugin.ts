@@ -3,6 +3,7 @@ import type {ElementContent, Properties, Root} from 'hast';
 import type {Plugin} from 'unified';
 import {visit} from 'unist-util-visit';
 import {fromHtmlIsomorphic} from 'hast-util-from-html-isomorphic';
+import {h} from 'hastscript';
 
 interface RehypeGraphvizDiagramOption {
   containerTagName?: string;
@@ -16,15 +17,6 @@ const defaultOptions: Required<RehypeGraphvizDiagramOption> = {
   postProcess: (svg: string) => svg,
 };
 
-const errorBlock = (msg: string) => {
-  return `
-<div>
-  <b>Rehype Graphviz Diagram Render Error:</b>
-  <p>${msg}</p>
-</div>
-`;
-};
-
 const graphvizInstance = await instance();
 
 export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root> =
@@ -35,7 +27,7 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
       postProcess: options?.postProcess ?? defaultOptions.postProcess,
     };
 
-    const languageGraphvizRegex = /^language-graphviz-(\S+)$/i; // Cache the regex
+    const languageGraphvizRegex = /^language-graphviz-(\S+)$/i;
 
     return (tree) => {
       visit(tree, 'element', (node, index, pre) => {
@@ -77,9 +69,8 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
           pre.properties = mergedOptions.containerTagProps;
           pre.children = svgHast.children as ElementContent[];
         } catch (e: any) {
-          const errorBlockHast = fromHtmlIsomorphic(errorBlock(e));
           pre.tagName = 'div';
-          pre.children = errorBlockHast.children as ElementContent[];
+          pre.children = [h('div', [h('b', 'Error:'), h('p', e.message)])];
         }
 
         // Skip the next index since we're replacing the original code block with the SVG

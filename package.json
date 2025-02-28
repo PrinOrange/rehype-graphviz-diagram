@@ -6,7 +6,7 @@
   "type": "module",
   "exports": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "format": "prettier . --write",
     "test": "pnpm run build && tsx --test ./__tests__/*.test.ts",
     "prepublish": "pnpm run format && pnpm run test && pnpm run build"
@@ -35,13 +35,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/hast": "^3.0.4",
     "@viz-js/viz": "^3.11.0",
     "hast-util-from-html-isomorphic": "^2.0.0",
+    "hastscript": "^9.0.1",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
-    "@types/hast": "^3.0.4",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.13.5",
     "jsdom": "^26.0.0",
