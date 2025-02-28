@@ -6,6 +6,7 @@ src
 .gitignore
 .prettierignore
 .prettierrc
+.github
 
 .vscode
 *.temp.*
