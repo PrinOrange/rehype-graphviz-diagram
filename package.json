@@ -6,7 +6,7 @@
   "type": "module",
   "exports": "./dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc",
     "format": "prettier . --write",
     "test": "pnpm run build && tsx --test ./__tests__/*.test.ts",
     "prepublish": "pnpm run format && pnpm run test && pnpm run build"
