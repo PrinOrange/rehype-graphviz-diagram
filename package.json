@@ -1,6 +1,6 @@
 {
   "name": "rehype-graphviz-diagram",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A Unified/Rehype Plugin that allows you transform graphviz codes into SVG diagram.",
   "main": "./dist/index.js",
   "type": "module",
