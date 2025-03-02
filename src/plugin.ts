@@ -17,6 +17,18 @@ const defaultOptions: Required<RehypeGraphvizDiagramOption> = {
   postProcess: (svg: string) => svg,
 };
 
+const layoutEngines = [
+  'dot',
+  'neato',
+  'fdp',
+  'sfdp',
+  'circo',
+  'twopi',
+  'nop',
+  'nop2',
+  'osage',
+  'patchwork',
+];
 const graphvizInstance = await instance();
 
 export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root> =
@@ -26,8 +38,6 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
       containerTagProps: options?.containerTagProps ?? defaultOptions.containerTagProps,
       postProcess: options?.postProcess ?? defaultOptions.postProcess,
     };
-
-    const languageGraphvizRegex = /^language-graphviz-(\S+)$/i;
 
     return (tree) => {
       visit(tree, 'element', (node, index, pre) => {
@@ -43,10 +53,18 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
 
         const className = node.properties.className;
         if (!Array.isArray(className) || className.length === 0) return;
-        const lang = className[0].toString();
-        const match = lang.match(languageGraphvizRegex);
-        if (!match) return;
-        const engine = match[1] || 'dot';
+        const lang = className[0].toString().replace(/^language-/, '');
+        let engine: string;
+
+        if (layoutEngines.includes(lang)) {
+          engine = lang;
+        } else if (lang === 'graphviz') {
+          engine = 'dot';
+        } else if (lang.match(/^graphviz-.+$/i)) {
+          engine = lang.split('-')[1];
+        } else {
+          return;
+        }
 
         // If there's no content in the code block, skip it
         if (node.children.length === 0 || node.children[0].type !== 'text') {
