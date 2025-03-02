@@ -6,7 +6,7 @@ This is the unified/rehype plugin that allows you transform graphviz codes into 
 
 ### Basic usage
 
-This plugin make all `<code class="language-graphviz-*">` (The class could be `language-graphviz-neato`, `language-graphviz-circo`, `language-graphviz-dot` and others suffixed by layout engine name) elements wrapped by `<pre>` replaced by a rendered version of the SVG diagram.
+This plugin make all `<code class="language-graphviz-*">` (The class could be `language-graphviz-neato` or `language-neato`, `language-graphviz-circo` or `language-circo`, `language-graphviz-dot` or `language-dot` and others suffixed by layout engine name) elements wrapped by `<pre>` replaced by a rendered version of the SVG diagram.
 
 Input:
 
