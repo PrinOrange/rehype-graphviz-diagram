@@ -79,14 +79,31 @@ console.log(output.toString())
 If you want to change another layout engine, like `circo`, `neato`, `twopi` and so on, like
 
 ````markdown
-<!-- Render with circo engine. -->
+<!--    Render with circo engine.     -->
 ```graphviz-circo
 digraph {
   ....
 }
 ```
-<!-- Render with neato engine. -->
+
+Or
+
+```circo
+digraph {
+  ....
+}
+```
+<!--    Render with neato engine.    -->
+
 ```graphviz-neato
+digraph {
+  ....
+}
+```
+
+Or
+
+```neato
 digraph {
   ....
 }
