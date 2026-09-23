@@ -110,6 +110,20 @@ digraph {
 ```
 ````
 
+### Process markdown with Nuxt Content
+
+[@nuxtjs/mdc](https://github.com/nuxt-modules/mdc), the markdown pipeline behind Nuxt Content, does not produce the `<pre><code class="language-*">` shape shown above. `remark-mdc` moves the language onto the `<pre>` element and leaves the inner `<code>` without any class, and the syntax highlighter matches on that same attribute, so a `language-*` class on the `code` element is not available in any case.
+
+This plugin recognizes both shapes, so diagrams in Nuxt Content work without any extra configuration. The same fenced code block shown in the previous section is compiled by `@nuxtjs/mdc` into
+
+```html
+<pre language="graphviz-dot" code="digraph { a -&gt; b }">
+  <code>digraph { a -&gt; b }</code>
+</pre>
+```
+
+Where this plugin is registered relative to a syntax highlighter does not matter. The source of the diagram is read from the text content of the code element, so a code block that a highlighter already wrapped in spans is still rendered.
+
 ### Related vscode extension
 
 We set a distinguish language annotation from codeblock different for most of plugins and extensions on marketplace. \
