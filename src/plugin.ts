@@ -54,6 +54,92 @@ function languageFromClassName(className: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * The SVG presentation attributes that are hyphenated in SVG but camelCased as hast
+ * properties, i.e. the ones `property-information`'s SVG schema and HTML schema
+ * disagree on. Everything else (`viewBox`, `preserveAspectRatio`, `xmlns:xlink`,
+ * `class`, `xlink:href`, …) is already spelled the same by both and needs no help.
+ */
+const svgAttributeNames = new Map<string, string>([
+  ['fontFamily', 'font-family'],
+  ['fontSize', 'font-size'],
+  ['fontSizeAdjust', 'font-size-adjust'],
+  ['fontStretch', 'font-stretch'],
+  ['fontStyle', 'font-style'],
+  ['fontVariant', 'font-variant'],
+  ['fontWeight', 'font-weight'],
+  ['textAnchor', 'text-anchor'],
+  ['textDecoration', 'text-decoration'],
+  ['textRendering', 'text-rendering'],
+  ['letterSpacing', 'letter-spacing'],
+  ['wordSpacing', 'word-spacing'],
+  ['dominantBaseline', 'dominant-baseline'],
+  ['alignmentBaseline', 'alignment-baseline'],
+  ['baselineShift', 'baseline-shift'],
+  ['fillOpacity', 'fill-opacity'],
+  ['fillRule', 'fill-rule'],
+  ['strokeWidth', 'stroke-width'],
+  ['strokeDashArray', 'stroke-dasharray'],
+  ['strokeDashOffset', 'stroke-dashoffset'],
+  ['strokeLineCap', 'stroke-linecap'],
+  ['strokeLineJoin', 'stroke-linejoin'],
+  ['strokeMiterLimit', 'stroke-miterlimit'],
+  ['strokeOpacity', 'stroke-opacity'],
+  ['colorInterpolation', 'color-interpolation'],
+  ['colorInterpolationFilters', 'color-interpolation-filters'],
+  ['colorProfile', 'color-profile'],
+  ['colorRendering', 'color-rendering'],
+  ['shapeRendering', 'shape-rendering'],
+  ['imageRendering', 'image-rendering'],
+  ['clipPath', 'clip-path'],
+  ['clipRule', 'clip-rule'],
+  ['maskType', 'mask-type'],
+  ['markerStart', 'marker-start'],
+  ['markerMid', 'marker-mid'],
+  ['markerEnd', 'marker-end'],
+  ['stopColor', 'stop-color'],
+  ['stopOpacity', 'stop-opacity'],
+  ['floodColor', 'flood-color'],
+  ['floodOpacity', 'flood-opacity'],
+  ['lightingColor', 'lighting-color'],
+  ['paintOrder', 'paint-order'],
+  ['pointerEvents', 'pointer-events'],
+  ['vectorEffect', 'vector-effect'],
+  ['writingMode', 'writing-mode'],
+  ['unicodeBidi', 'unicode-bidi'],
+  ['enableBackground', 'enable-background'],
+  ['transformOrigin', 'transform-origin'],
+]);
+
+/**
+ * Rename the properties of a generated SVG subtree to the SVG attribute names
+ * they stand for.
+ *
+ * `hast-util-from-html-isomorphic` stores SVG attributes as camelCase *properties*
+ * (`font-family` becomes `fontFamily`), which a hast consumer is supposed to map
+ * back with the SVG schema. `@nuxtjs/mdc`, the renderer behind Nuxt Content,
+ * maps them with the *HTML* schema instead, which knows nothing about SVG-only
+ * presentation attributes like `font-family`, `font-size` or `text-anchor`. The
+ * camelCase name then reaches the DOM untouched and SVG ignores it, so a diagram's
+ * text inherits the page font and its labels lose their anchoring.
+ */
+function useSvgAttributeNames(node: Root | Element, insideSvg = false): void {
+  const inSvg = insideSvg || (node.type === 'element' && node.tagName === 'svg');
+
+  if (node.type === 'element' && inSvg && node.properties) {
+    node.properties = Object.fromEntries(
+      Object.entries(node.properties).map(([name, value]) => [
+        svgAttributeNames.get(name) ?? name,
+        value,
+      ]),
+    );
+  }
+
+  for (const child of node.children) {
+    if (child.type === 'element') useSvgAttributeNames(child, inSvg);
+  }
+}
+
 /** Read a `language` style attribute, which never carries more than one token. */
 function languageFromInfo(info: unknown): string | undefined {
   if (typeof info !== 'string') return undefined;
@@ -152,6 +238,7 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
           const svgHast = fromHtmlIsomorphic(svg, {
             fragment: true,
           });
+          useSvgAttributeNames(svgHast);
 
           // update the node to be a generated SVG
           node.tagName = mergedOptions.containerTagName;

@@ -10,10 +10,20 @@ import rehypeGraphvizDiagram from '../src/index';
 import {JSDOM} from 'jsdom';
 import {fileURLToPath} from 'node:url';
 import rehypeParse from 'rehype-parse';
+import {visit} from 'unist-util-visit';
 import type {Element, Root} from 'hast';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/** The first element with the given tag name, or `undefined`. */
+const firstElement = (tree: Root, tagName: string): Element | undefined => {
+  let match: Element | undefined;
+  visit(tree, 'element', (node: Element) => {
+    if (match === undefined && node.tagName === tagName) match = node;
+  });
+  return match;
+};
 
 /** Run an html fixture in `cases/<name>/input.html` through the plugin and parse the result. */
 const renderHtmlCase = async (name: string) => {
@@ -145,6 +155,44 @@ test('ClassName Given As A String', async (t) => {
   assert.ok(
     figure.children.some((child) => child.type === 'element' && child.tagName === 'svg'),
   );
+});
+
+test('SVG Presentation Attributes Keep Their Names (MDC)', async (t) => {
+  // `@nuxtjs/mdc`, the renderer behind Nuxt Content, resolves hast properties back
+  // to attribute names with the *HTML* schema. That schema has no entry for
+  // SVG-only presentation attributes, so a camelCase property such as `fontFamily`
+  // would reach the DOM unchanged; SVG ignores `fontFamily` and the diagram's text
+  // silently inherits the page font. The plugin has to store the SVG names itself.
+  const tree: Root = {
+    type: 'root',
+    children: [
+      {
+        type: 'element',
+        tagName: 'pre',
+        properties: {language: 'graphviz-dot'},
+        children: [
+          {
+            type: 'element',
+            tagName: 'code',
+            properties: {},
+            children: [{type: 'text', value: 'digraph { a -> b }'}],
+          },
+        ],
+      },
+    ],
+  };
+
+  await unified().use(rehypeGraphvizDiagram).run(tree);
+
+  const text = firstElement(tree, 'text');
+  assert.ok(text != null, 'expected a <text> element in the diagram');
+
+  const attributes = Object.keys(text.properties);
+
+  assert.ok(attributes.includes('font-family'));
+  assert.ok(attributes.includes('font-size'));
+  assert.ok(attributes.includes('text-anchor'));
+  assert.ok(!attributes.includes('fontFamily'));
 });
 
 test('Invalid Graphviz Code', async (t) => {
