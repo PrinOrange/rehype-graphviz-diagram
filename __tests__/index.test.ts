@@ -162,7 +162,8 @@ test('SVG Presentation Attributes Keep Their Names (MDC)', async (t) => {
   // to attribute names with the *HTML* schema. That schema has no entry for
   // SVG-only presentation attributes, so a camelCase property such as `fontFamily`
   // would reach the DOM unchanged; SVG ignores `fontFamily` and the diagram's text
-  // silently inherits the page font. The plugin has to store the SVG names itself.
+  // silently inherits the page font. The plugin has to resolve the SVG names
+  // itself, with the SVG schema.
   const tree: Root = {
     type: 'root',
     children: [

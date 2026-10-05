@@ -40,6 +40,7 @@
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hast-util-to-string": "^3.0.1",
     "hastscript": "^9.0.1",
+    "property-information": "^7.0.0",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0"
   },

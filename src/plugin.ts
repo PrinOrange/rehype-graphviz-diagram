@@ -1,5 +1,6 @@
 import {instance} from '@viz-js/viz';
 import type {Element, ElementContent, Properties, Root} from 'hast';
+import {find, svg} from 'property-information';
 import type {Plugin} from 'unified';
 import {SKIP, visit} from 'unist-util-visit';
 import {fromHtmlIsomorphic} from 'hast-util-from-html-isomorphic';
@@ -55,63 +56,6 @@ function languageFromClassName(className: unknown): string | undefined {
 }
 
 /**
- * The SVG presentation attributes that are hyphenated in SVG but camelCased as hast
- * properties, i.e. the ones `property-information`'s SVG schema and HTML schema
- * disagree on. Everything else (`viewBox`, `preserveAspectRatio`, `xmlns:xlink`,
- * `class`, `xlink:href`, …) is already spelled the same by both and needs no help.
- */
-const svgAttributeNames = new Map<string, string>([
-  ['fontFamily', 'font-family'],
-  ['fontSize', 'font-size'],
-  ['fontSizeAdjust', 'font-size-adjust'],
-  ['fontStretch', 'font-stretch'],
-  ['fontStyle', 'font-style'],
-  ['fontVariant', 'font-variant'],
-  ['fontWeight', 'font-weight'],
-  ['textAnchor', 'text-anchor'],
-  ['textDecoration', 'text-decoration'],
-  ['textRendering', 'text-rendering'],
-  ['letterSpacing', 'letter-spacing'],
-  ['wordSpacing', 'word-spacing'],
-  ['dominantBaseline', 'dominant-baseline'],
-  ['alignmentBaseline', 'alignment-baseline'],
-  ['baselineShift', 'baseline-shift'],
-  ['fillOpacity', 'fill-opacity'],
-  ['fillRule', 'fill-rule'],
-  ['strokeWidth', 'stroke-width'],
-  ['strokeDashArray', 'stroke-dasharray'],
-  ['strokeDashOffset', 'stroke-dashoffset'],
-  ['strokeLineCap', 'stroke-linecap'],
-  ['strokeLineJoin', 'stroke-linejoin'],
-  ['strokeMiterLimit', 'stroke-miterlimit'],
-  ['strokeOpacity', 'stroke-opacity'],
-  ['colorInterpolation', 'color-interpolation'],
-  ['colorInterpolationFilters', 'color-interpolation-filters'],
-  ['colorProfile', 'color-profile'],
-  ['colorRendering', 'color-rendering'],
-  ['shapeRendering', 'shape-rendering'],
-  ['imageRendering', 'image-rendering'],
-  ['clipPath', 'clip-path'],
-  ['clipRule', 'clip-rule'],
-  ['maskType', 'mask-type'],
-  ['markerStart', 'marker-start'],
-  ['markerMid', 'marker-mid'],
-  ['markerEnd', 'marker-end'],
-  ['stopColor', 'stop-color'],
-  ['stopOpacity', 'stop-opacity'],
-  ['floodColor', 'flood-color'],
-  ['floodOpacity', 'flood-opacity'],
-  ['lightingColor', 'lighting-color'],
-  ['paintOrder', 'paint-order'],
-  ['pointerEvents', 'pointer-events'],
-  ['vectorEffect', 'vector-effect'],
-  ['writingMode', 'writing-mode'],
-  ['unicodeBidi', 'unicode-bidi'],
-  ['enableBackground', 'enable-background'],
-  ['transformOrigin', 'transform-origin'],
-]);
-
-/**
  * Rename the properties of a generated SVG subtree to the SVG attribute names
  * they stand for.
  *
@@ -122,6 +66,11 @@ const svgAttributeNames = new Map<string, string>([
  * presentation attributes like `font-family`, `font-size` or `text-anchor`. The
  * camelCase name then reaches the DOM untouched and SVG ignores it, so a diagram's
  * text inherits the page font and its labels lose their anchoring.
+ *
+ * The SVG schema is the only thing that can tell the two flavours of camelCase
+ * apart — `fontFamily` stands for `font-family`, while `viewBox` really is
+ * `viewBox` — so the name is resolved with `property-information` rather than by
+ * hand. Names the schema doesn't know are returned unchanged.
  */
 function useSvgAttributeNames(node: Root | Element, insideSvg = false): void {
   const inSvg = insideSvg || (node.type === 'element' && node.tagName === 'svg');
@@ -129,7 +78,7 @@ function useSvgAttributeNames(node: Root | Element, insideSvg = false): void {
   if (node.type === 'element' && inSvg && node.properties) {
     node.properties = Object.fromEntries(
       Object.entries(node.properties).map(([name, value]) => [
-        svgAttributeNames.get(name) ?? name,
+        find(svg, name).attribute,
         value,
       ]),
     );

@@ -23,6 +23,9 @@ importers:
       hastscript:
         specifier: ^9.0.1
         version: 9.0.1
+      property-information:
+        specifier: ^7.0.0
+        version: 7.0.0
       unified:
         specifier: ^11.0.5
         version: 11.0.5
