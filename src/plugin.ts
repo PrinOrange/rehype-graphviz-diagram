@@ -10,12 +10,14 @@ import {h} from 'hastscript';
 interface RehypeGraphvizDiagramOption {
   containerTagName?: string;
   containerTagProps?: Properties;
+  imageFormat?: 'svg' | 'png';
   postProcess?: (svg: string) => string;
 }
 
 const defaultOptions: Required<RehypeGraphvizDiagramOption> = {
   containerTagName: 'figure',
   containerTagProps: {},
+  imageFormat: 'svg',
   postProcess: (svg: string) => svg,
 };
 
@@ -154,15 +156,40 @@ function resolveSource(pre: Element, code: Element | undefined): string | undefi
     : undefined;
 }
 
+/**
+ * Turn an SVG document into a `data:` URL holding a base64 encoded PNG.
+ *
+ * The Graphviz WASM build only emits vector/text formats, so the raster step is
+ * delegated to `@resvg/resvg-js`. It is imported on demand: the package carries a
+ * native binary that is not worth loading for the default SVG output.
+ */
+async function svgToPngDataUrl(svg: string): Promise<string> {
+  const {Resvg} = await import('@resvg/resvg-js');
+  const png = new Resvg(svg).render().asPng();
+  return `data:image/png;base64,${png.toString('base64')}`;
+}
+
+/** A `<pre>` block recognised as a diagram, with the source and engine to render it. */
+interface DiagramBlock {
+  node: Element;
+  engine: string;
+  source: string;
+}
+
 export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root> =
   function (options = defaultOptions) {
     const mergedOptions: Required<RehypeGraphvizDiagramOption> = {
       containerTagName: options?.containerTagName ?? defaultOptions.containerTagName,
       containerTagProps: options?.containerTagProps ?? defaultOptions.containerTagProps,
+      imageFormat: options?.imageFormat ?? defaultOptions.imageFormat,
       postProcess: options?.postProcess ?? defaultOptions.postProcess,
     };
 
-    return (tree) => {
+    return async (tree) => {
+      // The blocks are collected first and rendered afterwards, because turning an
+      // SVG into a PNG is asynchronous and a `visit` callback cannot await.
+      const blocks: DiagramBlock[] = [];
+
       visit(tree, 'element', (node) => {
         // Ensure the current node is a 'pre' block possibly containing a 'code' element
         if (node.tagName !== 'pre') return;
@@ -176,23 +203,35 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
         if (engine === undefined) return;
 
         // If there's no content in the code block, skip it
-        const graphvizCode = resolveSource(node, code);
-        if (graphvizCode === undefined) return;
+        const source = resolveSource(node, code);
+        if (source === undefined) return;
 
-        // Generate SVG from Graphviz code
+        blocks.push({node, engine, source});
+
+        // Nothing inside a recognized code block needs transforming
+        return SKIP;
+      });
+
+      for (const {node, engine, source} of blocks) {
         try {
+          // Generate SVG from Graphviz code
           const svg = mergedOptions.postProcess(
-            graphvizInstance.renderString(graphvizCode, {engine, format: 'svg'}),
+            graphvizInstance.renderString(source, {engine, format: 'svg'}),
           );
-          const svgHast = fromHtmlIsomorphic(svg, {
-            fragment: true,
-          });
-          useSvgAttributeNames(svgHast);
 
-          // update the node to be a generated SVG
           node.tagName = mergedOptions.containerTagName;
           node.properties = mergedOptions.containerTagProps;
-          node.children = svgHast.children as ElementContent[];
+
+          if (mergedOptions.imageFormat === 'png') {
+            // The rasterized diagram replaces the SVG subtree with a single image
+            node.children = [h('img', {src: await svgToPngDataUrl(svg)})];
+          } else {
+            const svgHast = fromHtmlIsomorphic(svg, {
+              fragment: true,
+            });
+            useSvgAttributeNames(svgHast);
+            node.children = svgHast.children as ElementContent[];
+          }
         } catch (e: any) {
           // The code block properties are dropped too: on the `@nuxtjs/mdc` shape
           // they carry the whole graphviz source, which must not leak as an attribute.
@@ -200,9 +239,6 @@ export const rehypeGraphvizDiagram: Plugin<[RehypeGraphvizDiagramOption?], Root>
           node.properties = {};
           node.children = [h('div', [h('b', 'Error:'), h('p', e.message)])];
         }
-
-        // Skip the generated SVG subtree, there's nothing left to transform in it
-        return SKIP;
-      });
+      }
     };
   };

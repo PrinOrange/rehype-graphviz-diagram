@@ -64,6 +64,38 @@ test('Basic Usage', async (t) => {
   assert.ok(svg != null);
 });
 
+test('PNG Output', async (t) => {
+  const input = await fs.readFileSync(
+    path.resolve(__dirname, './cases/basic-usage/input.html'),
+    'utf-8',
+  );
+  const output = (
+    await unified()
+      .use(rehypeParse, {fragment: true})
+      .use(rehypeGraphvizDiagram, {imageFormat: 'png'})
+      .use(rehypeStringify)
+      .process(input)
+  ).toString();
+
+  const dom = new JSDOM(output);
+  const img = dom.window.document.querySelector('figure > img');
+
+  assert.ok(img != null, 'expected the diagram to be replaced by an <img>');
+
+  // The SVG subtree is gone, the rasterized diagram took its place
+  assert.equal(dom.window.document.querySelector('figure > svg'), null);
+
+  const match = /^data:image\/png;base64,(.+)$/.exec(img.getAttribute('src') ?? '');
+  assert.ok(match != null, 'expected a base64 PNG data URL');
+
+  // Decoding the payload must yield the PNG signature, so the content is a real image
+  const png = Buffer.from(match[1], 'base64');
+  assert.deepEqual(
+    [...png.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  );
+});
+
 test('Integrate Markdown', async (t) => {
   const input = await fs.readFileSync(
     path.resolve(__dirname, './cases/integrate-markdown/input.md'),
